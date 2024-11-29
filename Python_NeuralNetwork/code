@@ -1,0 +1,84 @@
+import numpy
+import scipy.special
+import matplotlib.pyplot
+
+class NeuralNetwork:
+    def __init__(self,InputNodes,HiddenNodes,OutputNodes,LearningRate):
+        self.innodes=InputNodes
+        self.hdnodes=HiddenNodes
+        self.outnodes=OutputNodes
+        self.lr=LearningRate
+        self.wih = numpy.random.normal( 0.0, pow(self.hdnodes, -0.5), (self.hdnodes, self.innodes))
+        self.who = numpy.random.normal( 0.0, pow(self.outnodes, -0.5), (self.outnodes, self.hdnodes))
+        self.activation_function = lambda x: scipy.special.expit(x)
+        pass
+    def train(self,input_list,target_list):
+        inputs=input_list
+        targets=target_list
+        
+        hidden_input=numpy.dot(self.wih,inputs)
+        hidden_output=self.activation_function(hidden_input)
+        final_input=numpy.dot(self.who,hidden_output)
+        final_output=self.activation_function(final_input) 
+
+        output_errors = targets - final_output
+        hidden_errors = numpy.dot(self.who.T, output_errors)
+
+        self.who += self.lr * numpy.dot( ( output_errors * final_output *(1.0 - final_output)) , numpy.transpose(hidden_output))
+        self.wih += self.lr * numpy.dot((hidden_errors * hidden_output * (1.0 - hidden_output)), numpy.transpose (inputs))
+        pass
+    def query(self,input_list):
+        inputs=input_list
+        
+        hidden_input=numpy.dot(self.wih,inputs)
+        hidden_output=self.activation_function(hidden_input)
+        final_input=numpy.dot(self.who,hidden_output)
+        final_output=self.activation_function(final_input)
+        
+        return final_output
+
+input_nodes=784
+hidden_nodes=200
+output_nodes=10
+learning_rate=0.2
+N=NeuralNetwork(input_nodes,hidden_nodes,output_nodes,learning_rate)
+
+training_data_file=open(r"D:\AI_SelfLearning\Python_NeuralNetwork\mnist_dataset\mnist_train.csv",'r')
+training_data_list=training_data_file.readlines()
+training_data_file.close()
+epochs = 2
+for e in range(epochs):
+    for record in training_data_list:
+        all_values = record.split(',')
+        inputs = (numpy.asfarray(all_values[1:]) / 255.0 * 0.99) + 0.01
+        targets = numpy.zeros(output_nodes) + 0.01
+        targets[int(all_values[0])] = 0.99
+        inputs = inputs.reshape(-1, 1)
+        targets = targets.reshape(-1, 1)
+        N.train(inputs, targets)
+        pass
+    pass
+
+test_data_file = open(r"D:\AI_SelfLearning\Python_NeuralNetwork\mnist_dataset\mnist_test.csv",'r')
+test_data_list = test_data_file.readlines()
+test_data_file.close()
+
+scorecard = []
+for record in test_data_list:
+    all_values = record.split(',')
+    correct_label = int(all_values[0])
+    print(correct_label, "correct label")
+    inputs = (numpy.asfarray(all_values[1:]) / 255.0 * 0.99) + 0.01
+    inputs = inputs.reshape(-1, 1)
+    outputs = N.query(inputs)
+    label = numpy.argmax(outputs)
+    print(label, "network's answer")
+    if (label == correct_label):
+        scorecard.append(1)
+    else:
+        scorecard.append(0)
+        pass
+    pass
+
+scorecard_array = numpy.asarray(scorecard)
+print ("performance = ", scorecard_array.sum() /scorecard_array.size)
